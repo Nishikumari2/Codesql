@@ -1,0 +1,122 @@
+SELECT 
+  MAX(atbBizNty_To.tcsBizNtyIdy)                          AS [Entity], 
+  MAX(tabPchsBil.tcsPchsBilIdy)                           AS [Bill Id], 
+  MAX(tabPchsBil.tcdPchsBilDate)                          AS [Bill Date], 
+  MAX(tabPchsBil.tcdPchsBilRcvdDate)                      AS [Acc Date], 
+  MAX(tabPchsBilLine.tcsPchsItemHSN )                     AS [HSN], 
+  MAX( 
+    CASE 
+      WHEN tabPchsBil.tciPchsBilFromD          = -1    THEN 
+        CASE 
+          WHEN atbBizNty_Payee.tcsBizNtyIdy IS NOT NULL THEN atbBizNty_Payee.tcsBizNtyName + ' - ' + atbBizNty_Payee.tcsBizNtyIdy 
+          ELSE atbEmp_Payee.tcsEmpName + ' - ' + atbEmp_Payee.tcsEmpIdy
+        END 
+      WHEN tabPchsBilBatch.tcsPchsBilBatchType = 'EEC' THEN tabEmp.tcsEmpName + ' - ' + tabEmp.tcsEmpIdy 
+      ELSE                                                  atbBizNty_From.tcsBizNtyName + ' - ' + atbBizNty_From.tcsBizNtyIdy 
+    END)                                                  AS [Vendor], 
+  MAX(atbBizNty_From.tcsBizNtyAdrsLine1)                  AS [Address Line 1], 
+  MAX(atbBizNty_From.tcsBizNtyAdrsLine2)                  AS [Address Line 2], 
+  MAX(atbBizNty_From.tcsBizNtyLoc)                        AS [Location], 
+  MAX(atbBizNty_From.tcsBizNtyPostCode)                   AS [Pincode], 
+  MAX(atbBizNty_From.tcsBizNtyCntry)                      AS [Country], 
+  MAX(
+    CASE 
+      WHEN atbBizNty_From.tcsBizNtyState = '<NS>' THEN '' 
+      ELSE                                             atbBizNty_From.tcsBizNtyState 
+    END)                                                  AS [State], 
+  MAX(atbBizNty_From.tcsBizNtySalesTaxIdy)                AS [GSTIN], 
+  MAX( 
+    CASE 
+      WHEN atbBizNty_Payee.tcsBizNtyIdy IS NOT NULL THEN atbBizNty_Payee.tcsBizNtyName + ' - ' + atbBizNty_Payee.tcsBizNtyIdy 
+      ELSE atbEmp_Payee.tcsEmpName + ' - ' + atbEmp_Payee.tcsEmpIdy
+    END)                                                  AS [Payee], 
+  MAX(atbDir_EmpDptmt.tcsDirIdy)                          AS [Dept], 
+  ''                                                      AS [Loc], 
+  MAX(tabPchsBil.tcsPchsBilCrncIdy)                       AS [Currency], 
+  MAX(tabPchsBil.tcnPchsBilXchngRate)                     AS [Exchange rate], 
+  MAX(tabPchsBilLine.tcsPchsCntxtDesc)                    AS [Description], 
+  MAX(tabItem.tcsItemIdy)                                 AS [Item], 
+  MAX(tabPchsBilLine.tcnPchsBilItemVal)                   AS [Amount], 
+  MAX(
+    CASE 
+      WHEN atbPchsBilLine_Tax_IORC_GST.tcsPchsCntxtDesc LIKE '%IGST%' 
+           THEN ISNULL(atbPchsBilLine_Tax_IORC_GST.tcnPchsItemVal, '0.00') 
+      ELSE '0.00'
+    END)                                                  AS [IGST], 
+  MAX(
+    CASE 
+      WHEN atbPchsBilLine_Tax_IORC_GST.tcsPchsCntxtDesc LIKE '%CGST%' 
+           THEN ISNULL(atbPchsBilLine_Tax_IORC_GST.tcnPchsItemVal, '0.00') 
+      ELSE '0.00' 
+   END)                                                   AS [CGST], 
+  MAX(
+    CASE 
+      WHEN atbPchsBilLine_Tax_SGST.tcsPchsCntxtDesc LIKE '%SGST%' 
+           THEN ISNULL(atbPchsBilLine_Tax_SGST.tcnPchsItemVal, '0.00') 
+      ELSE '0.00'
+    END)                                                  AS [SGST], 
+  MAX(tabPchsBil.tciPchsBilD) AS dviPchsBilD 
+FROM 
+  tabPchsBil 
+    INNER JOIN tabPchsBilLine ON 
+    tabPchsBil.tciSysHostD              =  '1'                        AND 
+    tabPchsBil.tcsPchsBilActv           =  '1'                        AND 
+    tabPchsBil.tcsPchsBilSts            =  'ACC'                      AND 
+    tabPchsBil.tcdPchsBilRcvdDate       >= DATEADD(DAY, -3, GETDATE()) AND 
+    tabPchsBilLine.tcsPchsBilLineActv   =  '1'                        AND 
+    tabPchsBil.tciSysHostD              =  tabPchsBilLine.tciSysHostD AND 
+    tabPchsBil.tciPchsBilD              =  tabPchsBilLine.tciPchsBilD AND 
+    (
+      tabPchsBilLine.tcsPchsCntxtDesc NOT LIKE '%IGST%' AND 
+      tabPchsBilLine.tcsPchsCntxtDesc NOT LIKE '%CGST%' AND 
+      tabPchsBilLine.tcsPchsCntxtDesc NOT LIKE '%SGST%'
+    ) 
+      INNER JOIN tabBizNty AS atbBizNty_From ON 
+      tabPchsBil.tciSysHostD        =  atbBizNty_From.tciSysHostD AND 
+      tabPchsBil.tciPchsBilFromD    =  atbBizNty_From.tciBizNtyD 
+        INNER JOIN tabBizNty AS atbBizNty_To ON 
+        tabPchsBil.tciSysHostD    = atbBizNty_To.tciSysHostD AND 
+        tabPchsBil.tciPchsBilToD  = atbBizNty_To.tciBizNtyD 
+          INNER JOIN tabItem ON 
+          tabItem.tcsItemGroup        IN ('CAPEX', 'EEC' , 'GoS', 'K3') AND 
+          tabPchsBilLine.tciSysHostD  =  tabItem.tciSysHostD            AND 
+          tabPchsBilLine.tciItemD     =  tabItem.tciItemD
+            INNER JOIN tabEmp ON 
+            tabPchsBilLine.tciSysHostD      = tabEmp.tciSysHostD  AND 
+            tabPchsBilLine.tciPchsCntxtEmpD = tabEmp.tciEmpD 
+              LEFT JOIN tabDir AS atbDir_EmpDptmt ON 
+              atbDir_EmpDptmt.tcsDirIdx = 'Dptmt'                      AND 
+              tabPchsBilLine.tciSysHostD              = atbDir_EmpDptmt.tciSysHostD  AND 
+              tabPchsBilLine.tciPchsCntxtDptmtD       = atbDir_EmpDptmt.tciDirD 
+                LEFT JOIN tabPchsBilBatch ON 
+                tabPchsBilBatch.tcsPchsBilBatchActv =  '1'                              AND 
+                tabPchsBilBatch.tcsPchsBilBatchSts  IN ('ACC', 'MAC')                   AND
+                tabPchsBil.tciSysHostD              =  tabPchsBilBatch.tciSysHostD      AND 
+                tabPchsBil.tciPchsBilBatchD         =  tabPchsBilBatch.tciPchsBilBatchD
+                  LEFT JOIN tabBizNty AS atbBizNty_Payee ON 
+                  tabPchsBil.tcsPchsBilPayeeType = 'Biz'                       AND 
+                  tabPchsBil.tciSysHostD         = atbBizNty_Payee.tciSysHostD AND 
+                  tabPchsBil.tciPchsBilPayeeD    = atbBizNty_Payee.tciBizNtyD 
+                    LEFT JOIN tabEmp AS atbEmp_Payee ON 
+                    tabPchsBil.tcsPchsBilPayeeType = 'Emp'                    AND 
+                    tabPchsBil.tciSysHostD         = atbEmp_Payee.tciSysHostD AND 
+                    tabPchsBil.tciPchsBilPayeeD    = atbEmp_Payee.tciEmpD 
+                      LEFT JOIN tabPchsBilLine AS atbPchsBilLine_Tax_IORC_GST ON 
+                      atbPchsBilLine_Tax_IORC_GST.tciBasisPchsBilLineD <> '-1'                                             AND 
+                      atbPchsBilLine_Tax_IORC_GST.tcsPchsBilLineActv   =  '1'                                              AND 
+                      tabPchsBilLine.tciSysHostD                       =  atbPchsBilLine_Tax_IORC_GST.tciSysHostD          AND 
+                      tabPchsBilLine.tciPchsBilLineD                   =  atbPchsBilLine_Tax_IORC_GST.tciBasisPchsBilLineD AND 
+                      atbPchsBilLine_Tax_IORC_GST.tciBasisPchsBilLineD <> '-1'                                             AND 
+                      (
+                        atbPchsBilLine_Tax_IORC_GST.tcsPchsCntxtDesc     LIKE '%IGST%' OR 
+                        atbPchsBilLine_Tax_IORC_GST.tcsPchsCntxtDesc     LIKE '%CGST%' 
+                      )
+                        LEFT JOIN tabPchsBilLine AS atbPchsBilLine_Tax_SGST ON 
+                        atbPchsBilLine_Tax_SGST.tciBasisPchsBilLineD <> '-1'                                         AND 
+                        atbPchsBilLine_Tax_SGST.tcsPchsBilLineActv   =  '1'                                          AND 
+                        tabPchsBilLine.tciSysHostD                   =  atbPchsBilLine_Tax_SGST.tciSysHostD          AND 
+                        tabPchsBilLine.tciPchsBilLineD               =  atbPchsBilLine_Tax_SGST.tciBasisPchsBilLineD AND 
+                        atbPchsBilLine_Tax_SGST.tcsPchsCntxtDesc     LIKE '%SGST%'                                   AND 
+                        atbPchsBilLine_Tax_SGST.tciBasisPchsBilLineD <> '-1'
+GROUP BY 
+  tabPchsBilLine.tciPchsBilLineD; 
