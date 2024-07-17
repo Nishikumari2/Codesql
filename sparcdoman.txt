@@ -1,0 +1,36 @@
+public void saveFrSparcDoman() throws SQLException, IOException,NextIdyException,DBIntegrityException,DBManagerException{ 
+    String lviSparcDomanD;
+    RowSet lvoSparcDomanList = (RowSet) cvoMapIn.get("svoSparcDoman");
+    Row lvoSparcDomanRow = null;
+    
+    while (lvoSparcDomanList.hasNextRow()) {
+      lvoSparcDomanRow = lvoSparcDomanList.getNextRow();
+      //lviSparcDomanD = cvoMapIn.get("sviSparcDomanD").toString().trim(); 
+      //cvoLogger.debug("================="+lviSparcDomanD);
+      cvoMapIn.put("rvsSparcDoman", lvoSparcDomanRow.get("svsSparcDoman"));
+      cvoMapIn.put("rvsBill", lvoSparcDomanRow.get("svsBill")); 
+      cvoMapIn.put("rvsMgr", lvoSparcDomanRow.get("svsMgr")); 
+      cvoMapIn.put("rvsExec", lvoSparcDomanRow.get("svsExec")); 
+      cvoMapIn.put("rviRatePerMth", lvoSparcDomanRow.get("sviRatePerMth")); 
+      cvoMapIn.put("rviBaseEmpCount", lvoSparcDomanRow.get("sviBaseEmpCount")); 
+      cvoMapIn.put("rviBasePerMthEmpCount", lvoSparcDomanRow.get("sviBasePerMthEmpCount"));
+      cvoMapIn.put("rviRatePerMthPerEmpAboveBaseEmpCount", lvoSparcDomanRow.get("sviRatePerMthPerEmpAboveBaseEmpCount"));
+      //lviSparcDomanD = cvoMapIn.get("sviSparcDomanD").toString().trim();
+      //cvoMapIn.put("rviSparcDomanD", lviSparcDomanD);
+      cvoMapIn.put("rviSparcDomanD", lvoSparcDomanRow.get("sviSparcDomanD"));
+      if(lvoSparcDomanRow.isNewRow()){
+      //if (lviSparcDomanD.isEmpty() || lviSparcDomanD == null || lviSparcDomanD.equals("0") || lviSparcDomanD.equals("-1")) {
+      lviSparcDomanD = cvoToolSet.getNewTxnIdy("app", "tabSparcDoman", 0).toString();
+      cvoMapIn.put("rviSparcDomanD", lviSparcDomanD);
+      cvoDBManager.update("SparcClients\\iarSparcDoman", "app", cvoMapIn);
+      } 
+      if(lvoSparcDomanRow.isUpdateRow()){ 
+      
+      cvoDBManager.update("SparcClients\\uarSparcDoman", "app", cvoMapIn);
+      }
+    }  
+    if (cvoDBManager.canCommit("app")) {
+      cvoDBManager.commitTrans("app");
+      cvoMapOut.put(ConstantKey.responseMsg, "S: Record updated successfully");
+    }
+  } 
