@@ -1,0 +1,15 @@
+SELECT 
+      tabItem.tcsItemIdy          AS svsItem,
+      tabItem.tcsItemDesc         AS svsBilLineDesc,
+      tabItem.tcsItemUomIdy       AS svsBilLineUom,
+      tabItem.tcsItemHsnSac       AS svsBilLineHSN,
+      tabBilLine.tcnBilLineQty       AS svnBilLineQty,
+      tabBilLine.tcnBilLineUnitPrice AS svnBilLineUnitPrice,
+      tabBilLine.tcnBilLineDscnt     AS svnBilLineDscnt,
+      tabBilLine.tcnBilLineVal       AS svnBilLineVal 
+  FROM 
+    tabItem 
+	 INNER JOIN 
+	  tabBilLine ON 
+	   tabItem.tciItemD = tabBilLine.tciItemD AND 
+	   tabItem.tcbItemG = 1;
